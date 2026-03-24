@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
 import { GlobalProvider } from "@/context/GlobalContext";
 import ThemeScript from "@/components/ThemeScript";
 import LayoutWrapper from "@/components/LayoutWrapper";
+import AppChrome from "@/components/AppChrome";
 import { I18nClientBridge } from "@/i18n/I18nClientBridge";
 
 // Use Inter font with swap display for better loading
@@ -33,12 +33,7 @@ export default function RootLayout({
         <GlobalProvider>
           <I18nClientBridge>
             <LayoutWrapper>
-              <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden transition-colors duration-200">
-                <Sidebar />
-                <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-                  {children}
-                </main>
-              </div>
+              <AppChrome>{children}</AppChrome>
             </LayoutWrapper>
           </I18nClientBridge>
         </GlobalProvider>
