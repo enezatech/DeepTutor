@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import {
   Home,
@@ -24,6 +24,7 @@ import {
   GripVertical,
   Check,
   X,
+  LogOut,
   LucideIcon,
 } from "lucide-react";
 import { useGlobal } from "@/context/GlobalContext";
@@ -54,6 +55,7 @@ const ALL_NAV_ITEMS: Record<string, { icon: LucideIcon; nameKey: string }> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     sidebarCollapsed,
     toggleSidebar,
@@ -204,6 +206,16 @@ export default function Sidebar() {
     setDraggedItem(null);
     setDragOverItem(null);
     setDragGroup(null);
+  };
+
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+    }
   };
 
   const currentWidth = sidebarCollapsed
@@ -484,6 +496,23 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+
+        <button
+          onClick={handleLogout}
+          className={`w-full mt-2 flex items-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm border border-transparent hover:border-slate-100 dark:hover:border-slate-600 transition-all duration-200 ${
+            sidebarCollapsed ? "justify-center p-2" : "gap-2.5 pl-2 pr-1.5 py-2"
+          }`}
+          title={t("Logout")}
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          <span
+            className={`text-sm whitespace-nowrap flex-1 transition-all duration-300 ${
+              sidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+            }`}
+          >
+            {t("Logout")}
+          </span>
+        </button>
 
         {/* Expand/Collapse button at bottom */}
         <button

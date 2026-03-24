@@ -290,6 +290,9 @@ cp .env.example .env
 | `BACKEND_PORT` | No | Backend port (default: `8001`) |
 | `FRONTEND_PORT` | No | Frontend port (default: `3782`) |
 | `NEXT_PUBLIC_API_BASE` | No | **Frontend API URL** - Set this for remote/LAN access (e.g., `http://192.168.1.100:8001`) |
+| `APP_LOGIN_USERNAME` | No | Shared login username for web app protection |
+| `APP_LOGIN_PASSWORD_HASH` | No | SHA-256 password hash for shared login |
+| `APP_SESSION_SECRET` | No | Secret used to sign HttpOnly session cookie |
 | `TTS_*` | No | Text-to-Speech settings |
 | `SEARCH_PROVIDER` | No | Search provider (options: `perplexity`, `tavily`, `serper`, `jina`, `exa`, `baidu`, default: `perplexity`) |
 | `SEARCH_API_KEY` | No | Unified API key for all search providers |
@@ -298,6 +301,37 @@ cp .env.example .env
 > ```bash
 > NEXT_PUBLIC_API_BASE=http://192.168.31.66:8001
 > ```
+
+</details>
+
+<details>
+<summary>🔐 <b>Optional: Enable Shared Web Login</b></summary>
+
+Set these variables in `.env` to require login before accessing the app:
+
+```bash
+APP_LOGIN_USERNAME=admin
+APP_LOGIN_PASSWORD_HASH=<sha256-hex-password>
+APP_SESSION_SECRET=<long-random-secret>
+```
+
+Generate `APP_LOGIN_PASSWORD_HASH` (SHA-256):
+
+```bash
+# macOS / Linux
+echo -n "your-password" | shasum -a 256
+
+# Python
+python -c "import hashlib; print(hashlib.sha256(b'your-password').hexdigest())"
+```
+
+Generate `APP_SESSION_SECRET`:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+> Leave these unset to run without login protection.
 
 </details>
 
