@@ -17,7 +17,7 @@ on:
 env:
   REGISTRY: ghcr.io
   # IMAGE_NAME must be lowercase for Docker
-  IMAGE_NAME: hkuds/deeptutor
+  IMAGE_NAME: eneza/deeptutor
 
 jobs:
   # ============================================
