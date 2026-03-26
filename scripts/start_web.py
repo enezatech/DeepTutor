@@ -346,6 +346,7 @@ def start_frontend():
             f.write("#   NEXT_PUBLIC_API_BASE=http://your-server-ip:8001\n")
             f.write("# ============================================\n\n")
             f.write(f"NEXT_PUBLIC_API_BASE={api_base_url}\n")
+            f.write(f"NEXT_PUBLIC_BACKEND_PORT={backend_port}\n")
         print_flush(f"✅ Updated .env.local with API base: {api_base_url}")
     except Exception as e:
         print_flush(f"⚠️ Warning: Failed to update .env.local: {e}")
@@ -355,6 +356,7 @@ def start_frontend():
     env = os.environ.copy()
     env["PORT"] = str(frontend_port)
     env["NEXT_PUBLIC_API_BASE"] = api_base_url
+    env["NEXT_PUBLIC_BACKEND_PORT"] = str(backend_port)
     # Set encoding environment variables for Windows
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
