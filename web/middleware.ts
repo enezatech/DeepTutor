@@ -6,7 +6,12 @@ import {
   verifySessionToken,
 } from "@/lib/auth-edge";
 
-const PUBLIC_PATH_PREFIXES = ["/login", "/api/auth/login", "/api/auth/logout"];
+const PUBLIC_PATH_PREFIXES = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/api/v1/knowledge/health",
+];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
