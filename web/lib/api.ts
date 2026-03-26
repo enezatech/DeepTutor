@@ -19,7 +19,23 @@ if (
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_EXTERNAL ||
   process.env.NEXT_PUBLIC_API_BASE ||
-  FALLBACK_API_BASE_URL;
+  (() => {
+    if (typeof window !== "undefined") {
+      console.error(
+        "NEXT_PUBLIC_API_BASE_EXTERNAL / NEXT_PUBLIC_API_BASE is not set.",
+      );
+      console.error(
+        "Please configure server ports in config/main.yaml and restart the application using: python scripts/start_web.py",
+      );
+      console.error(
+        "The .env.local file will be automatically generated with the correct backend port.",
+      );
+    }
+    // No fallback - port must be configured in config/main.yaml
+    throw new Error(
+      "NEXT_PUBLIC_API_BASE_EXTERNAL / NEXT_PUBLIC_API_BASE is not configured. Please set server ports in config/main.yaml and restart.",
+    );
+  })();
 
 /**
  * Construct a full API URL from a path
