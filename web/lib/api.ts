@@ -56,6 +56,22 @@ function resolveApiBaseUrl(configuredBase: string): string {
       configuredUrl.port !== "" &&
       configuredUrl.port !== pageUrl.port;
 
+    const isLikelyInternalHttpsBackendPort =
+      configuredUrl.protocol === "https:" &&
+      pageUrl.protocol === "https:" &&
+      configuredUrl.hostname === pageUrl.hostname &&
+      configuredUrl.port === "8001";
+
+    if (isLikelyInternalHttpsBackendPort) {
+      console.warn(
+        `[API] Detected HTTPS API base using internal backend port 8001 on current host. Falling back to same-origin API base (${pageUrl.origin}) because managed HTTPS proxies (e.g., Coolify) usually terminate TLS on 443.`,
+      );
+      console.warn(
+        `[API] Set NEXT_PUBLIC_API_BASE_EXTERNAL to your public HTTPS endpoint without internal app ports.`,
+      );
+      return pageUrl.origin;
+    }
+
     if (isLikelyTlsPortMismatch) {
       console.warn(
         `[API] Detected HTTPS API base with mismatched port (${configuredUrl.port}) on current host. Falling back to same-origin API base (${pageUrl.origin}) to avoid TLS protocol mismatch (e.g., ERR_SSL_PROTOCOL_ERROR).`,
