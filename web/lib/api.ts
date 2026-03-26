@@ -16,26 +16,66 @@ if (
   );
 }
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_EXTERNAL ||
-  process.env.NEXT_PUBLIC_API_BASE ||
-  (() => {
-    if (typeof window !== "undefined") {
-      console.error(
-        "NEXT_PUBLIC_API_BASE_EXTERNAL / NEXT_PUBLIC_API_BASE is not set.",
+function getConfiguredApiBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_EXTERNAL ||
+    process.env.NEXT_PUBLIC_API_BASE ||
+    (() => {
+      if (typeof window !== "undefined") {
+        console.error(
+          "NEXT_PUBLIC_API_BASE_EXTERNAL / NEXT_PUBLIC_API_BASE is not set.",
+        );
+        console.error(
+          "Please configure server ports in config/main.yaml and restart the application using: python scripts/start_web.py",
+        );
+        console.error(
+          "The .env.local file will be automatically generated with the correct backend port.",
+        );
+      }
+      // No fallback - port must be configured in config/main.yaml
+      throw new Error(
+        "NEXT_PUBLIC_API_BASE_EXTERNAL / NEXT_PUBLIC_API_BASE is not configured. Please set server ports in config/main.yaml and restart.",
       );
-      console.error(
-        "Please configure server ports in config/main.yaml and restart the application using: python scripts/start_web.py",
+    })()
+  );
+}
+
+function resolveApiBaseUrl(configuredBase: string): string {
+  if (typeof window === "undefined") {
+    return configuredBase;
+  }
+
+  try {
+    const configuredUrl = new URL(configuredBase);
+    const pageUrl = new URL(window.location.origin);
+
+    const isLikelyTlsPortMismatch =
+      configuredUrl.protocol === "https:" &&
+      pageUrl.protocol === "https:" &&
+      configuredUrl.hostname === pageUrl.hostname &&
+      configuredUrl.port !== "" &&
+      configuredUrl.port !== pageUrl.port;
+
+    if (isLikelyTlsPortMismatch) {
+      console.warn(
+        `[API] Detected HTTPS API base with mismatched port (${configuredUrl.port}) on current host. Falling back to same-origin API base (${pageUrl.origin}) to avoid TLS protocol mismatch (e.g., ERR_SSL_PROTOCOL_ERROR).`,
       );
-      console.error(
-        "The .env.local file will be automatically generated with the correct backend port.",
+      console.warn(
+        `[API] If this fallback is not desired, set NEXT_PUBLIC_API_BASE_EXTERNAL to the correct externally reachable HTTPS API endpoint.`,
       );
+      return pageUrl.origin;
     }
-    // No fallback - port must be configured in config/main.yaml
-    throw new Error(
-      "NEXT_PUBLIC_API_BASE_EXTERNAL / NEXT_PUBLIC_API_BASE is not configured. Please set server ports in config/main.yaml and restart.",
+  } catch (error) {
+    console.warn(
+      `[API] Failed to parse configured API base URL (${configuredBase}). Using value as-is.`,
+      error,
     );
-  })();
+  }
+
+  return configuredBase;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl(getConfiguredApiBaseUrl());
 
 /**
  * Construct a full API URL from a path
