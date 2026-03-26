@@ -244,7 +244,12 @@ find /app/web/.next -type f \( -name "*.js" -o -name "*.json" \) -exec \
     sed -i "s|__NEXT_PUBLIC_API_BASE_PLACEHOLDER__|${API_BASE}|g" {} \; 2>/dev/null || true
 
 # Also update .env.local for any runtime reads
-echo "NEXT_PUBLIC_API_BASE=${API_BASE}" > /app/web/.env.local
+cat > /app/web/.env.local <<ENVEOF
+NEXT_PUBLIC_API_BASE=${API_BASE}
+NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
+ENVEOF
+
+export NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
 
 # Start Next.js
 cd /app/web && exec node node_modules/next/dist/bin/next start -H 0.0.0.0 -p ${FRONTEND_PORT}

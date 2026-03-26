@@ -3,6 +3,19 @@
 // Get API base URL from environment variable
 // This is automatically set by start_web.py based on config/main.yaml
 // The .env.local file is auto-generated on startup with the correct backend port
+const BACKEND_PORT = process.env.NEXT_PUBLIC_BACKEND_PORT || "8001";
+const FALLBACK_API_BASE_URL = `http://localhost:${BACKEND_PORT}`;
+
+if (
+  typeof window !== "undefined" &&
+  !process.env.NEXT_PUBLIC_API_BASE_EXTERNAL &&
+  !process.env.NEXT_PUBLIC_API_BASE
+) {
+  console.warn(
+    `NEXT_PUBLIC_API_BASE_EXTERNAL / NEXT_PUBLIC_API_BASE is not set. Falling back to ${FALLBACK_API_BASE_URL}.`,
+  );
+}
+
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_EXTERNAL ||
   process.env.NEXT_PUBLIC_API_BASE ||
