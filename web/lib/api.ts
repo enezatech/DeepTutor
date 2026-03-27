@@ -85,11 +85,27 @@ function resolveApiBaseUrl(configuredBase: string | undefined): string {
     return localBase;
   }
 
-  // If the configured URL uses HTTPS on the backend port (8001), it will fail with
-  // ERR_SSL_PROTOCOL_ERROR because the backend only serves HTTP.
-  // Automatically switch to HTTP in this case.
+  // If the browser page is loaded over HTTPS but the configured API URL is HTTP,
+  // upgrade to HTTPS to avoid Mixed Content errors. This is safe because the
+  // reverse proxy (Coolify/Nginx) terminates TLS and forwards to the backend via HTTP.
   try {
     const urlObj = new URL(configuredBase);
+    if (
+      urlObj.protocol === "http:" &&
+      typeof window !== "undefined" &&
+      window.location.protocol === "https:"
+    ) {
+      // Preserve the port if it was explicitly set in the configured URL
+      const portSuffix = urlObj.port ? `:${urlObj.port}` : "";
+      const httpsBase = `https://${urlObj.hostname}${portSuffix}`;
+      console.info(
+        `[API] Page is HTTPS but configured URL ${configuredBase} is HTTP. Upgrading to HTTPS: ${httpsBase}`,
+      );
+      return httpsBase;
+    }
+    // If the configured URL uses HTTPS on the backend port (8001), it will fail with
+    // ERR_SSL_PROTOCOL_ERROR because the backend only serves HTTP.
+    // Automatically switch to HTTP in this case.
     if (urlObj.protocol === "https:" && urlObj.port === BACKEND_PORT) {
       const httpBase = `http://${urlObj.hostname}:${BACKEND_PORT}`;
       console.info(
