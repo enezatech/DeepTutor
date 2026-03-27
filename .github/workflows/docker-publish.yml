@@ -1,4 +1,4 @@
-name: Build and Publish Docker Image
+name: Build  and Publish simplified Docker Image
 
 on:
   # Manual trigger only - gives full control over when images are published
