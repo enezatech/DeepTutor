@@ -85,9 +85,14 @@ function resolveApiBaseUrl(configuredBase: string | undefined): string {
     return localBase;
   }
 
-  // If the browser page is loaded over HTTPS but the configured API URL is HTTP,
-  // upgrade to HTTPS to avoid Mixed Content errors. This is safe because the
-  // reverse proxy (Coolify/Nginx) terminates TLS and forwards to the backend via HTTP.
+  // Handle HTTPS deployment scenario (e.g., Coolify/Nginx reverse proxy):
+  // When the page is served over HTTPS but the configured API URL uses HTTP on a
+  // non-standard port (like :8001), the browser will block it as Mixed Content.
+  // We cannot simply upgrade to https://:8001 because the backend only speaks HTTP.
+  //
+  // Solution: Use the page's own origin (https://hostname) so requests go through
+  // the reverse proxy, which handles TLS termination and routes /api/v1/* to the
+  // backend internally. Next.js rewrites in next.config.js handle the proxying.
   try {
     const urlObj = new URL(configuredBase);
     if (
@@ -95,13 +100,14 @@ function resolveApiBaseUrl(configuredBase: string | undefined): string {
       typeof window !== "undefined" &&
       window.location.protocol === "https:"
     ) {
-      // Preserve the port if it was explicitly set in the configured URL
-      const portSuffix = urlObj.port ? `:${urlObj.port}` : "";
-      const httpsBase = `https://${urlObj.hostname}${portSuffix}`;
+      // Use the page origin (no port) so requests go through the HTTPS reverse proxy.
+      // The proxy routes /api/v1/* to the backend on port 8001 internally.
+      const pageOrigin = window.location.origin;
       console.info(
-        `[API] Page is HTTPS but configured URL ${configuredBase} is HTTP. Upgrading to HTTPS: ${httpsBase}`,
+        `[API] Page is HTTPS but configured URL ${configuredBase} is HTTP. ` +
+          `Using page origin ${pageOrigin} to route through reverse proxy.`,
       );
-      return httpsBase;
+      return pageOrigin;
     }
     // If the configured URL uses HTTPS on the backend port (8001), it will fail with
     // ERR_SSL_PROTOCOL_ERROR because the backend only serves HTTP.
