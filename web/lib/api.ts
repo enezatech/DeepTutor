@@ -110,47 +110,8 @@ function resolveApiBaseUrl(configuredBase: string | undefined): string {
     return pageUrl;
   }
 
-  // Apply auto-fallback logic for configured URLs
-  try {
-    const configuredUrl = new URL(configuredBase);
-
-    const isLikelyTlsPortMismatch =
-      configuredUrl.protocol === "https:" &&
-      configuredUrl.hostname === new URL(pageUrl).hostname &&
-      configuredUrl.port !== "" &&
-      configuredUrl.port !== new URL(pageUrl).port;
-
-    const isLikelyInternalHttpsBackendPort =
-      configuredUrl.protocol === "https:" &&
-      configuredUrl.hostname === new URL(pageUrl).hostname &&
-      configuredUrl.port === "8001";
-
-    if (isLikelyInternalHttpsBackendPort) {
-      console.warn(
-        `[API] Detected HTTPS API base using internal backend port 8001 on current host. Falling back to same-origin API base (${pageUrl}) because managed HTTPS proxies (e.g., Coolify) usually terminate TLS on 443.`,
-      );
-      console.warn(
-        `[API] To fix this permanently, set NEXT_PUBLIC_API_BASE_EXTERNAL to your public HTTPS endpoint (e.g., https://yourdomain.com).`,
-      );
-      return pageUrl;
-    }
-
-    if (isLikelyTlsPortMismatch) {
-      console.warn(
-        `[API] Detected HTTPS API base with mismatched port (${configuredUrl.port}) on current host. Falling back to same-origin API base (${pageUrl}) to avoid TLS protocol mismatch (e.g., ERR_SSL_PROTOCOL_ERROR).`,
-      );
-      console.warn(
-        `[API] To fix this permanently, set NEXT_PUBLIC_API_BASE_EXTERNAL to the correct externally reachable HTTPS API endpoint.`,
-      );
-      return pageUrl;
-    }
-  } catch (error) {
-    console.warn(
-      `[API] Failed to parse configured API base URL (${configuredBase}). Using value as-is.`,
-      error,
-    );
-  }
-
+  // Use the configured URL as-is without any auto-fallback logic.
+  // If the URL is incorrect, it will fail - the user must fix NEXT_PUBLIC_API_BASE.
   return configuredBase;
 }
 
