@@ -87,6 +87,19 @@ function resolveApiBaseUrl(configuredBase: string | undefined): string {
   // If no API base configured, default to same-origin (reverse proxy friendly)
   if (!configuredBase) {
     if (isBrowserWithoutApiConfig()) {
+      // If the page is served over HTTPS but the backend runs on HTTP port 8001,
+      // use http:// to avoid ERR_SSL_PROTOCOL_ERROR when port 8001 is appended.
+      const pageUrlObj = new URL(pageUrl);
+      if (pageUrlObj.protocol === "https:") {
+        const httpBase = `http://${pageUrlObj.hostname}:${BACKEND_PORT}`;
+        console.info(
+          `[API] No NEXT_PUBLIC_API_BASE configured. Page is HTTPS but backend runs on HTTP port ${BACKEND_PORT}. Using ${httpBase}.`,
+        );
+        console.info(
+          `[API] To fix this permanently, set NEXT_PUBLIC_API_BASE_EXTERNAL to your public HTTPS endpoint or configure a reverse proxy.`,
+        );
+        return httpBase;
+      }
       console.info(
         `[API] No NEXT_PUBLIC_API_BASE configured. Using same-origin API base (${pageUrl}) for reverse proxy deployment.`,
       );
@@ -178,4 +191,37 @@ export function wsUrl(path: string): string {
   const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
 
   return `${normalizedBase}${normalizedPath}`;
+}
+
+/**
+ * Default fetch options for API calls that include session cookies.
+ * Uses 'same-origin' credentials by default (cookies sent automatically for same-origin requests).
+ * For cross-origin deployments, use fetchWithCredentials() with credentials: 'include'.
+ */
+export const defaultFetchOptions: RequestInit = {
+  credentials: "same-origin",
+};
+
+/**
+ * Fetch wrapper that ensures session cookies are included in API requests.
+ *
+ * For same-origin deployments (recommended): Uses 'same-origin' credentials mode.
+ * For cross-origin deployments: Uses 'include' credentials mode to send cookies.
+ *
+ * @param url - The URL to fetch
+ * @param options - Fetch options (credentials is set automatically)
+ * @returns Fetch response
+ */
+export async function fetchWithSession(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const mergedOptions: RequestInit = {
+    ...defaultFetchOptions,
+    ...options,
+    // Ensure credentials is always set
+    credentials: "include", // Always include for cross-origin; same-origin sends automatically
+  };
+
+  return fetch(url, mergedOptions);
 }

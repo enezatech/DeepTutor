@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from src.api.auth import get_current_user, _is_auth_configured
 from src.api.routers import (
     agent_config,
     chat,
@@ -158,14 +160,96 @@ app = FastAPI(
     redirect_slashes=False,
 )
 
-# Configure CORS
+
+def get_allowed_origins() -> list[str]:
+    """
+    Get allowed CORS origins based on environment.
+    In production, only allow the specific frontend origin.
+    In development, allow common development origins.
+    """
+    import os
+
+    # Production: specific frontend origin from environment
+    frontend_origin = os.environ.get("FRONTEND_ORIGIN")
+    if frontend_origin:
+        return [frontend_origin]
+
+    # Development: allow common local development origins
+    return [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ]
+
+
+# Configure CORS with secure defaults
+# Credentials are required for session cookie transmission
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific frontend origin
+    allow_origins=get_allowed_origins(),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Type",
+        "Content-Length",
+        "Origin",
+        "Referer",
+        "User-Agent",
+        "X-Requested-With",
+    ],
 )
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """
+    Authentication middleware for all /api/v1/* routes.
+
+    This middleware validates session tokens for protected API endpoints.
+    When authentication is not configured (development mode), all requests are allowed.
+    When authentication is configured, requests without valid session tokens
+    receive a 401 Unauthorized response.
+
+    Public endpoints (those starting with /api/v1/auth) are always allowed
+    without authentication.
+    """
+    # Skip auth check for non-API routes
+    if not request.url.path.startswith("/api/v1/"):
+        return await call_next(request)
+
+    # Skip auth check for public endpoints
+    if request.url.path.startswith("/api/v1/auth"):
+        return await call_next(request)
+
+    # Skip auth check if authentication is not configured (development mode)
+    if not _is_auth_configured():
+        return await call_next(request)
+
+    # Extract session token from cookies
+    from src.api.auth import SESSION_COOKIE_NAME, decode_session_token
+
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
+
+    if not session_token:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Not authenticated. Please log in through the frontend."},
+        )
+
+    user = decode_session_token(session_token)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Invalid or expired session. Please log in again."},
+        )
+
+    # Store the authenticated user in request state for route handlers
+    request.state.user = user
+
+    return await call_next(request)
 
 # Mount user directory as static root for generated artifacts
 # This allows frontend to access generated artifacts (images, PDFs, etc.)
