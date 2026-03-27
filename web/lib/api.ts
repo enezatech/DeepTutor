@@ -85,8 +85,21 @@ function resolveApiBaseUrl(configuredBase: string | undefined): string {
     return localBase;
   }
 
-  // Use the configured URL as-is without any auto-fallback logic.
-  // If the URL is incorrect, it will fail - the user must fix NEXT_PUBLIC_API_BASE.
+  // If the configured URL uses HTTPS on the backend port (8001), it will fail with
+  // ERR_SSL_PROTOCOL_ERROR because the backend only serves HTTP.
+  // Automatically switch to HTTP in this case.
+  try {
+    const urlObj = new URL(configuredBase);
+    if (urlObj.protocol === "https:" && urlObj.port === BACKEND_PORT) {
+      const httpBase = `http://${urlObj.hostname}:${BACKEND_PORT}`;
+      console.info(
+        `[API] Configured URL ${configuredBase} uses HTTPS on backend port ${BACKEND_PORT}. Switching to HTTP: ${httpBase}`,
+      );
+      return httpBase;
+    }
+  } catch {
+    // URL parsing failed, use as-is
+  }
   return configuredBase;
 }
 
