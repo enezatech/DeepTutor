@@ -18,7 +18,7 @@ services:
   # All-in-One DeepTutor Service
   # ============================================
   deeptutor:
-    image: ghcr.io/enezatech/deeptutor:latest
+    image: enezatech/deeptutor:latest
     container_name: deeptutor
     restart: unless-stopped
     ports:
