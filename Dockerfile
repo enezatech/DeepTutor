@@ -217,23 +217,25 @@ set -e
 BACKEND_PORT=${BACKEND_PORT:-8001}
 FRONTEND_PORT=${FRONTEND_PORT:-3782}
 
-# Determine the API base URL with multiple fallback options
-# Priority: NEXT_PUBLIC_API_BASE_EXTERNAL > NEXT_PUBLIC_API_BASE > auto-detect
+# Determine the API base URL - NO automatic fallback
+# The URL must be explicitly configured via NEXT_PUBLIC_API_BASE_EXTERNAL or NEXT_PUBLIC_API_BASE
+# Priority: NEXT_PUBLIC_API_BASE_EXTERNAL > NEXT_PUBLIC_API_BASE
+# Port is handled separately via BACKEND_PORT env var (do NOT include port in API_BASE)
 if [ -n "$NEXT_PUBLIC_API_BASE_EXTERNAL" ]; then
-    # Explicit external URL for cloud deployments
+    # Explicit external URL for cloud deployments (without port - port is handled by BACKEND_PORT)
     API_BASE="$NEXT_PUBLIC_API_BASE_EXTERNAL"
     echo "[Frontend] 📌 Using external API URL: ${API_BASE}"
 elif [ -n "$NEXT_PUBLIC_API_BASE" ]; then
-    # Custom API base URL
+    # Custom API base URL (without port - port is handled by BACKEND_PORT)
     API_BASE="$NEXT_PUBLIC_API_BASE"
     echo "[Frontend] 📌 Using custom API URL: ${API_BASE}"
 else
-    # Default: localhost with configured backend port
-    # Note: This only works for local development, not cloud deployments
-    API_BASE="http://localhost:${BACKEND_PORT}"
-    echo "[Frontend] 📌 Using default API URL: ${API_BASE}"
-    echo "[Frontend] ⚠️  For cloud deployment, set NEXT_PUBLIC_API_BASE_EXTERNAL to your server's public URL"
-    echo "[Frontend]    Example: -e NEXT_PUBLIC_API_BASE_EXTERNAL=https://your-server.com:${BACKEND_PORT}"
+    # Default: localhost only - port is added by frontend code using BACKEND_PORT
+    API_BASE="http://localhost"
+    echo "[Frontend] 📌 Using localhost API URL: ${API_BASE}"
+    echo "[Frontend] ⚠️  Port will be appended from BACKEND_PORT (default: 8001)"
+    echo "[Frontend]    For cloud deployment, set NEXT_PUBLIC_API_BASE_EXTERNAL to your server's URL"
+    echo "[Frontend]    Example: -e NEXT_PUBLIC_API_BASE_EXTERNAL=https://your-server.com"
 fi
 
 echo "[Frontend] 🚀 Starting Next.js frontend on port ${FRONTEND_PORT}..."

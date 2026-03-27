@@ -34,25 +34,21 @@ function getConfiguredApiBaseUrl(): string | undefined {
 }
 
 /**
- * Check if we're in a browser environment and both API env vars are unset.
+ * Strip port from a URL base string if present.
+ * This ensures that BACKEND_PORT is used instead of any port in the configured base URL.
+ * @param url - URL that may contain a port
+ * @returns URL without port
  */
-function isBrowserWithoutApiConfig(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    !process.env.NEXT_PUBLIC_API_BASE_EXTERNAL &&
-    !process.env.NEXT_PUBLIC_API_BASE
-  );
-}
-
-/**
- * Get the page origin for same-origin API calls.
- * Only available in browser environment.
- */
-function getPageOrigin(): string | undefined {
-  if (typeof window === "undefined") {
-    return undefined;
+function stripPortFromBaseUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // Remove the port from the URL
+    const baseWithoutPort = `${urlObj.protocol}//${urlObj.hostname}`;
+    return baseWithoutPort;
+  } catch {
+    // If URL parsing fails, return original
+    return url;
   }
-  return window.location.origin;
 }
 
 /**
@@ -77,37 +73,16 @@ function resolveApiBaseUrl(configuredBase: string | undefined): string {
     return configuredBase;
   }
 
-  // Browser-side: use same-origin as default for reverse proxy deployments
-  const pageUrl = getPageOrigin();
-  if (!pageUrl) {
-    // Should not happen in browser, but fallback to localhost
-    return `http://localhost:${BACKEND_PORT}`;
-  }
-
-  // If no API base configured, default to same-origin (reverse proxy friendly)
+  // Browser-side: if no API base configured, fall back to localhost (never use page origin)
   if (!configuredBase) {
-    if (isBrowserWithoutApiConfig()) {
-      // If the page is served over HTTPS but the backend runs on HTTP port 8001,
-      // use http:// to avoid ERR_SSL_PROTOCOL_ERROR when port 8001 is appended.
-      const pageUrlObj = new URL(pageUrl);
-      if (pageUrlObj.protocol === "https:") {
-        const httpBase = `http://${pageUrlObj.hostname}:${BACKEND_PORT}`;
-        console.info(
-          `[API] No NEXT_PUBLIC_API_BASE configured. Page is HTTPS but backend runs on HTTP port ${BACKEND_PORT}. Using ${httpBase}.`,
-        );
-        console.info(
-          `[API] To fix this permanently, set NEXT_PUBLIC_API_BASE_EXTERNAL to your public HTTPS endpoint or configure a reverse proxy.`,
-        );
-        return httpBase;
-      }
-      console.info(
-        `[API] No NEXT_PUBLIC_API_BASE configured. Using same-origin API base (${pageUrl}) for reverse proxy deployment.`,
-      );
-      console.info(
-        `[API] To use a different API origin, set NEXT_PUBLIC_API_BASE_EXTERNAL or NEXT_PUBLIC_API_BASE in config/main.yaml.`,
-      );
-    }
-    return pageUrl;
+    const localBase = `http://localhost:${BACKEND_PORT}`;
+    console.info(
+      `[API] No NEXT_PUBLIC_API_BASE configured. Falling back to ${localBase}.`,
+    );
+    console.info(
+      `[API] To use a different API origin, set NEXT_PUBLIC_API_BASE_EXTERNAL or NEXT_PUBLIC_API_BASE in config/main.yaml.`,
+    );
+    return localBase;
   }
 
   // Use the configured URL as-is without any auto-fallback logic.
